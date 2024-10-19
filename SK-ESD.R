@@ -8,6 +8,7 @@ required_packages <- c(
     "psych", "FSA", "lattice", "coin", "PMCMRplus", "rcompanion", "DescTools"
 )
 
+library(caret)
 library(dplyr)
 library(ggplot2)
 library(gridExtra) # Do łączenia wielu wykresów
@@ -32,6 +33,11 @@ library(ScottKnottESD)
 if (!require(dplyr)) {
     install.packages("dplyr")
 }
+
+if (!require(caret)) {
+    install.packages("caret")
+}
+
 library(dplyr)
 
 # Import libraries
@@ -165,9 +171,18 @@ for (dat in datasets) {
         methods_colors <- hsv(h = seq(0.55, 0.75, length.out = 75), s = 1, v = 1)
 
         names(methods_colors) <- levels(plot_data$Var2)
+        # Obliczanie średniego MAE dla każdego Var2
+        mean_mae <- aggregate(value ~ Var2, data = plot_data, FUN = mean)
+
+        # Sortowanie plot_data według średniego MAE
+        plot_data$Var2 <- factor(plot_data$Var2, levels = mean_mae$Var2[order(mean_mae$value)])
 
         rank_plot <- ggplot(data = plot_data, aes(x = Var2, y = value, fill = Var2)) +
             geom_boxplot(outlier.shape = 16, outlier.size = 1, notch = FALSE, alpha = 0.7, fatten = 1) +
+            stat_summary(
+                fun = mean, geom = "errorbar", aes(ymin = ..y.., ymax = ..y..),
+                width = 0.7, color = "pink", size = 0.25
+            ) + # Dodanie średniej jako różowe linie
             ylim(global_min, global_max) +
             facet_grid(~rank, scales = "free_x", space = "free_x") +
             scale_fill_manual(values = methods_colors) +
@@ -176,16 +191,16 @@ for (dat in datasets) {
             ylab("MAE") + # Zmiana nazwy osi Y na MAE
             theme_bw() +
             theme(
-                plot.title = element_text(size = 9, hjust = 0.5),
-                axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
-                text = element_text(size = 8),
+                plot.title = element_text(size = 14, hjust = 0.5), # Zwiększono rozmiar tytułu
+                axis.text.x = element_text(angle = 45, hjust = 1, size = 10.5), # Zwiększono rozmiar tekstu na osi X
+                axis.text.y = element_text(size = 10.5), # Zwiększono rozmiar tekstu na osi Y
+                text = element_text(size = 10), # Zwiększono ogólny rozmiar tekstu
                 legend.position = "none",
                 panel.spacing = unit(1, "lines"),
                 panel.border = element_rect(colour = "grey50", fill = NA, size = 1),
-                axis.title.x = element_text(size = 8),
-                axis.title.y = element_text(size = 8)
+                axis.title.x = element_text(size = 12), # Zwiększono rozmiar tytułu osi X
+                axis.title.y = element_text(size = 12) # Zwiększono rozmiar tytułu osi Y
             )
-
         plot_list[[reg]] <- rank_plot
 
         # Konwersja kolumny rank na typ numeryczny
@@ -264,6 +279,13 @@ for (dat in datasets) {
     methods_colors <- hsv(h = seq(0.55, 0.75, length.out = length(unique(combined_data_dataset$Hyper_param_method))), s = 1, v = 1)
     names(methods_colors) <- levels(combined_data_dataset$Hyper_param_method)
 
+    # Obliczanie średniej wartości MAE dla każdej metody walidacji
+    mean_mae <- aggregate(MAE ~ Validation_method, data = combined_data_dataset, FUN = mean)
+
+    # Sortowanie metod walidacji według średniego MAE
+    combined_data_dataset$Validation_method <- factor(combined_data_dataset$Validation_method, levels = mean_mae$Validation_method[order(mean_mae$MAE)])
+
+    # Tworzenie wykresu z posortowanymi metodami walidacji
     plot_preliminary <- ggplot(data = combined_data_dataset, aes(x = Validation_method, y = MAE, fill = Hyper_param_method)) +
         geom_boxplot(outlier.shape = 16, outlier.size = 1, notch = FALSE, alpha = 0.7, fatten = 1) +
         scale_y_continuous() +
@@ -274,14 +296,14 @@ for (dat in datasets) {
         ylab("MAE") +
         theme_bw() +
         theme(
-            plot.title = element_text(size = 9, hjust = 0.5),
-            axis.text.x = element_text(angle = 45, hjust = 1, size = 8),
-            text = element_text(size = 8),
+            plot.title = element_text(size = 12, hjust = 0.5),
+            axis.text.x = element_text(angle = 90, hjust = 1, size = 8),
+            text = element_text(size = 11),
             legend.position = "none",
             panel.spacing = unit(1, "lines"),
             panel.border = element_rect(colour = "grey50", fill = NA, size = 1),
-            axis.title.x = element_text(size = 8),
-            axis.title.y = element_text(size = 8)
+            axis.title.x = element_text(size = 11),
+            axis.title.y = element_text(size = 11)
         )
 
     plot_list_preliminary[[paste("Boxplot-", dat)]] <- plot_preliminary

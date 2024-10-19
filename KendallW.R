@@ -32,6 +32,7 @@ library(dplyr)
 library(ScottKnottESD)
 library(readr)
 library(ggplot2)
+library(caret)
 
 # Ustawienie ścieżki do folderu z plikami CSV
 folder_path <- "C:\\Users\\julia\\PycharmProjects\\plotsAnalysis\\ml-tuning-08-16-2024-splits-10"
@@ -191,13 +192,23 @@ for (dat in dataset) {
 # Konwersja kolumny rank na typ numeryczny
 combined_data$rank <- as.numeric(combined_data$rank)
 
+scaled_ranks <- combined_data %>%
+  group_by(regressor, dataset) %>%
+  mutate(scaled_rank = caret::preProcess(as.data.frame(rank), method = "range", rangeBounds = c(1, 100)) %>%
+    predict(as.data.frame(rank)) %>%
+    unlist()) %>% # Konwersja wyników na prosty wektor
+  ungroup()
+
+scaled_ranks <- scaled_ranks %>%
+  arrange(Var2, scaled_rank) %>%
+  group_by(Var2) %>%
+  mutate(mean_rank = mean(scaled_rank)) # Obliczanie średniej rangi dla każdej kombinacji
+
+
 # Tworzenie wykresu pudełkowego
 boxplot_overall <- ggplot(
-  data = combined_data %>%
-    arrange(Var2, rank) %>%
-    group_by(Var2) %>%
-    mutate(mean_rank = mean(rank)),
-  aes(x = reorder(Var2, mean_rank), y = rank, fill = Var2)
+  data = scaled_ranks,
+  aes(x = reorder(Var2, mean_rank), y = scaled_rank, fill = Var2)
 ) +
   geom_boxplot(outlier.shape = 16, outlier.size = 1, notch = FALSE, alpha = 0.7, fatten = 1) +
   stat_summary(
@@ -221,7 +232,7 @@ boxplot_overall <- ggplot(
   ylab("Ranga") +
   xlab(NULL) +
   theme_bw() +
-  scale_y_continuous(breaks = seq(min(combined_data$rank), max(combined_data$rank), by = 1)) +
+  scale_y_continuous(breaks = c(1, 25, 50, 72, 100), limits = c(1, 100)) + # Skala od 1-100 i wybrane wartości na osi Y
   theme(
     plot.title = element_text(size = 14, hjust = 0.5),
     axis.text.x = element_text(angle = 45, hjust = 1, size = 15),
@@ -238,11 +249,19 @@ print(boxplot_overall)
 
 ggsave("boxplot.png", plot = boxplot_overall, width = 18, height = 5, units = "in")
 
-pivot_table_regressor <- combined_data %>%
-  select(regressor, Var2, rank) %>%
-  mutate(rank = as.numeric(rank)) %>%
+
+scaled_ranks <- combined_data %>%
+  group_by(regressor, dataset) %>%
+  mutate(scaled_rank = caret::preProcess(as.data.frame(rank), method = "range", rangeBounds = c(1, 100)) %>%
+    predict(as.data.frame(rank)) %>%
+    unlist()) %>% # Konwersja wyników na prosty wektor
+  ungroup()
+
+pivot_table_regressor <- scaled_ranks %>%
+  select(regressor, Var2, scaled_rank) %>%
+  mutate(scaled_rank = as.numeric(scaled_rank)) %>%
   group_by(regressor, Var2) %>%
-  summarize(mean_rank = mean(rank), .groups = "keep") %>%
+  summarize(mean_rank = mean(scaled_rank), .groups = "keep") %>%
   spread(key = Var2, value = mean_rank)
 
 pivot_table_regressor <- pivot_table_regressor %>%
@@ -255,11 +274,11 @@ average_row_regressor <- pivot_table_regressor %>%
 
 pivot_table_regressor <- bind_rows(pivot_table_regressor, average_row_regressor)
 
-pivot_table_dataset <- combined_data %>%
-  select(dataset, Var2, rank) %>%
-  mutate(rank = as.numeric(rank)) %>%
+pivot_table_dataset <- scaled_ranks %>%
+  select(dataset, Var2, scaled_rank) %>%
+  mutate(scaled_rank = as.numeric(scaled_rank)) %>%
   group_by(dataset, Var2) %>%
-  summarize(mean_rank = mean(rank), .groups = "keep") %>%
+  summarize(mean_rank = mean(scaled_rank), .groups = "keep") %>%
   spread(key = Var2, value = mean_rank)
 
 pivot_table_dataset <- pivot_table_dataset %>%

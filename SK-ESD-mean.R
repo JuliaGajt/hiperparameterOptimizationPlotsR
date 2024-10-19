@@ -170,15 +170,22 @@ for (dat in dataset) {
 
   combined_data$rank <- as.numeric(combined_data$rank)
 
-  dataset_data <- combined_data %>%
+  scaled_ranks <- combined_data %>%
     filter(dataset == dat) %>%
-    arrange(Var2, rank) %>%
+    group_by(regressor) %>%
+    mutate(scaled_rank = caret::preProcess(as.data.frame(rank), method = "range", rangeBounds = c(1, 100)) %>%
+      predict(as.data.frame(rank)) %>%
+      unlist()) %>% # Konwersja wyników na prosty wektor
+    ungroup()
+
+  scaled_ranks <- scaled_ranks %>%
+    arrange(Var2, scaled_rank) %>%
     group_by(Var2) %>%
-    mutate(mean_rank = mean(rank)) # Obliczanie średniej rangi dla każdej kombinacji
+    mutate(mean_rank = mean(scaled_rank)) # Obliczanie średniej rangi dla każdej kombinacji
 
   dataset_plot <- ggplot(
-    dataset_data,
-    aes(x = reorder(Var2, mean_rank), y = rank, fill = Var2)
+    scaled_ranks,
+    aes(x = reorder(Var2, mean_rank), y = scaled_rank, fill = Var2)
   ) +
     ggtitle(dat) +
     geom_boxplot(outlier.shape = 16, outlier.size = 1, notch = FALSE, alpha = 0.7, fatten = 1) +
@@ -203,17 +210,17 @@ for (dat in dataset) {
     ylab("Ranga") +
     xlab(NULL) +
     theme_bw() +
-    scale_y_continuous(breaks = seq(min(dataset_data$rank), max(dataset_data$rank), by = 1)) + # Zakładając, że 'rank' to nazwa kolumny
+    scale_y_continuous(breaks = c(1, 25, 50, 72, 100), limits = c(1, 100)) + # Skala od 1-100 i wybrane wartości na osi Y
     theme(
       plot.title = element_text(size = 14, hjust = 0.5),
       axis.text.x = element_text(angle = 45, hjust = 1, size = 15), # Zwiększony rozmiar czcionki dla nazw metod
       axis.text.y = element_text(size = 15), # Zwiększony rozmiar czcionki dla wartości na osi Y
       axis.title.y = element_text(size = 15, vjust = 0.5), # Zwiększony rozmiar czcionki dla etykiety "Ranga"
-      text = element_text(size = 10),
+      text = element_text(size = 11),
       legend.position = "none",
       panel.spacing = unit(1, "lines"),
       panel.border = element_rect(colour = "grey50", fill = NA, size = 1),
-      axis.title.x = element_text(size = 10)
+      axis.title.x = element_text(size = 11)
     )
   plot_list_dataset[[paste("Plot", dat)]] <- dataset_plot
 }
@@ -226,16 +233,33 @@ if (length(plot_list_dataset) > 0) {
 
 plot_list_regressor <- list()
 
+
 for (reg in regressors) {
-  regressor_data <- combined_data %>%
+  scaled_ranks <- combined_data %>%
     filter(regressor == reg) %>%
-    arrange(Var2, rank) %>%
+    group_by(dataset) %>%
+    mutate(scaled_rank = caret::preProcess(as.data.frame(rank), method = "range", rangeBounds = c(1, 100)) %>%
+      predict(as.data.frame(rank)) %>%
+      unlist()) %>% # Konwersja wyników na prosty wektor
+    ungroup()
+
+  scaled_ranks <- scaled_ranks %>%
+    arrange(Var2, scaled_rank) %>%
     group_by(Var2) %>%
-    mutate(mean_rank = mean(rank)) # Obliczanie średniej rangi dla każdej kombinacji
+    mutate(mean_rank = mean(scaled_rank)) # Obliczanie średniej rangi dla każdej kombinacji
+
+  print(scaled_ranks %>% filter(dataset == "maxwell"), n = 70)
+
+  # regressor_data <- combined_data %>%
+  #   filter(regressor == reg) %>%
+  #   arrange(Var2, rank) %>%
+  #   group_by(Var2) %>%
+  #   mutate(mean_rank = mean(rank)) # Obliczanie średniej rangi dla każdej kombinacji
+  # # print(regressor_data)
 
   regressor_plot <- ggplot(
-    regressor_data,
-    aes(x = reorder(Var2, mean_rank), y = rank, fill = Var2)
+    scaled_ranks,
+    aes(x = reorder(Var2, mean_rank), y = scaled_rank, fill = Var2)
   ) +
     ggtitle(reg) +
     geom_boxplot(outlier.shape = 16, outlier.size = 1, notch = FALSE, alpha = 0.7, fatten = 1) +
@@ -257,20 +281,20 @@ for (reg in regressors) {
       linetype = "dashed"
     ) +
     scale_fill_manual(values = methods_colors) +
-    ylab("Ranga") +
+    ylab("Przeskalowana ranga") +
     xlab(NULL) +
     theme_bw() +
-    scale_y_continuous(breaks = seq(min(dataset_data$rank), max(dataset_data$rank), by = 1)) + # Zakładając, że 'rank' to nazwa kolumny
+    scale_y_continuous(breaks = c(1, 25, 50, 72, 100), limits = c(1, 100)) + # Skala od 1-100 i wybrane wartości na osi Y
     theme(
       plot.title = element_text(size = 14, hjust = 0.5),
       axis.text.x = element_text(angle = 45, hjust = 1, size = 15), # Zwiększony rozmiar czcionki dla nazw metod
       axis.text.y = element_text(size = 15), # Zwiększony rozmiar czcionki dla wartości na osi Y
       axis.title.y = element_text(size = 15, vjust = 0.5), # Zwiększony rozmiar czcionki dla etykiety "Ranga"
-      text = element_text(size = 10),
+      text = element_text(size = 12),
       legend.position = "none",
       panel.spacing = unit(1, "lines"),
       panel.border = element_rect(colour = "grey50", fill = NA, size = 1),
-      axis.title.x = element_text(size = 10)
+      axis.title.x = element_text(size = 12)
     )
 
   plot_list_regressor[[paste("Plot", reg)]] <- regressor_plot
