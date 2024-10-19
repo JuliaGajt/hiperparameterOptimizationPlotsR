@@ -229,20 +229,20 @@ boxplot_overall <- ggplot(
     linetype = "dashed"
   ) +
   scale_fill_manual(values = methods_colors) +
-  ylab("Ranga") +
+  ylab("Przeskalowana ranga") +
   xlab(NULL) +
   theme_bw() +
   scale_y_continuous(breaks = c(1, 25, 50, 72, 100), limits = c(1, 100)) + # Skala od 1-100 i wybrane wartości na osi Y
   theme(
     plot.title = element_text(size = 14, hjust = 0.5),
-    axis.text.x = element_text(angle = 45, hjust = 1, size = 15),
-    axis.text.y = element_text(size = 15),
-    axis.title.y = element_text(size = 15, vjust = 0.5),
-    text = element_text(size = 10),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 18),
+    axis.text.y = element_text(size = 18),
+    axis.title.y = element_text(size = 18, vjust = 0.5),
+    text = element_text(size = 14),
     legend.position = "none",
     panel.spacing = unit(1, "lines"),
     panel.border = element_rect(colour = "grey50", fill = NA, size = 1),
-    axis.title.x = element_text(size = 10)
+    axis.title.x = element_text(size = 14)
   )
 
 print(boxplot_overall)

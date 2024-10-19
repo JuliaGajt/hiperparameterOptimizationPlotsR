@@ -226,10 +226,10 @@ for (dat in datasets) {
         # Tworzenie wykresu pudełkowego
         boxplot_overall_rank <- ggplot(
             data = sk_ranks %>%
-                arrange(Hyper_param_method, rank) %>%
-                group_by(Hyper_param_method) %>%
+                arrange(Validation_method, rank) %>%
+                group_by(Validation_method) %>%
                 mutate(mean_rank = mean(rank)),
-            aes(x = reorder(Hyper_param_method, mean_rank), y = rank, fill = Hyper_param_method)
+            aes(x = reorder(Validation_method, mean_rank), y = rank, fill = Validation_method)
         ) +
             ggtitle(paste(dat, " - ", reg, sep = "")) +
             ylim(global_min, global_max) +
@@ -257,15 +257,15 @@ for (dat in datasets) {
             theme_bw() +
             scale_y_continuous(breaks = seq(min(sk_ranks$rank), max(sk_ranks$rank), by = 1), limits = c(global_min, global_max)) + # Zakładając, że 'rank' to nazwa kolumny
             theme(
-                plot.title = element_text(size = 14, hjust = 0.5),
-                axis.text.x = element_text(angle = 45, hjust = 1, size = 15), # Zwiększony rozmiar czcionki dla nazw metod
-                axis.text.y = element_text(size = 15), # Zwiększony rozmiar czcionki dla wartości na osi Y
-                axis.title.y = element_text(size = 15, vjust = 0.5), # Zwiększony rozmiar czcionki dla etykiety "Ranga"
-                text = element_text(size = 10),
+                plot.title = element_text(size = 22, hjust = 0.5),
+                axis.text.x = element_text(angle = 45, hjust = 1, size = 22), # Zwiększony rozmiar czcionki dla nazw metod
+                axis.text.y = element_text(size = 16), # Zwiększony rozmiar czcionki dla wartości na osi Y
+                axis.title.y = element_text(size = 22, vjust = 0.5), # Zwiększony rozmiar czcionki dla etykiety "Ranga"
+                text = element_text(size = 18),
                 legend.position = "none",
                 panel.spacing = unit(1, "lines"),
                 panel.border = element_rect(colour = "grey50", fill = NA, size = 1),
-                axis.title.x = element_text(size = 10)
+                axis.title.x = element_text(size = 22)
             )
 
         plot_list_overall[[paste("Boxplot", reg, dat)]] <- boxplot_overall_rank
@@ -317,8 +317,8 @@ for (dat in datasets) {
 
 if (length(plot_list_overall) > 0) {
     combined_plot_1 <- do.call(grid.arrange, c(plot_list_overall, ncol = 6))
-    image_name_1 <- paste("combined_plots_hyper_mean_rank.png", sep = "")
-    ggsave(image_name_1, combined_plot_1, width = 22, height = length(plot_list) * 1.75, limitsize = FALSE)
+    image_name_1 <- paste("combined_plots_val_without_splits_mean_rank.png", sep = "")
+    ggsave(image_name_1, combined_plot_1, width = 22, height = length(plot_list) * 2.3, limitsize = FALSE)
 }
 
 if (length(plot_list_preliminary) > 0) {
